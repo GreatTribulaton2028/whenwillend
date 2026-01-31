@@ -14,6 +14,10 @@ This file will serve as a record of all conversations and interactions related t
 
 - Request: Open a dedicated page to record conversations for future AI or human reference.
 
+### Entry 2 (2026-01-31)
+
+- Added a new standalone page `mission-briefing.html` to list the task checklist derived from `project-instructions.md` and this log without altering existing drafts or the gospel Q&A style.
+- Included a Traditional/Simplified/English language toggle and embedded existing pCloud video links as the only video sources.
 ### Entry 2 (2026-01-31) - Feature Branch: life-monitor Enhancements
 
 **Summary**: Implemented comprehensive enhancements to the website on the `feature/life-monitor` branch, focusing on internationalization, improved user experience, Gospel video integration, and data management capabilities.
