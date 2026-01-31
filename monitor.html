@@ -1,0 +1,3076 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生死記錄儀 V9.0 — VITAL LIFE MONITOR</title>
+<link href="https://fonts.googleapis.com/css2?family=Jura:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Noto+Sans+TC:wght@300;400;700&family=Creepster&display=swap" rel="stylesheet">
+<style>
+:root {
+    --c-bg: #030405;
+    --c-panel: rgba(8, 12, 18, 0.95);
+    --c-border: #1a2a3a;
+    --c-accent: #00f3ff;
+    --c-fatal: #ff2a2a;
+    --c-crit: #ffae00;
+    --c-acc: #00ff41;
+    --c-dim: #3a4a5a;
+    --c-soul: #a855f7;
+    --f-mono: 'Share Tech Mono', monospace;
+    --f-head: 'Orbitron', sans-serif;
+    --f-text: 'Jura', 'Noto Sans TC', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    height: 100%;
+    overflow-x: hidden;
+    background: var(--c-bg);
+    color: #e0e6ed;
+    font-family: var(--f-text);
+}
+
+/* ===== 全螢幕粒子背景 ===== */
+#particle-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* ===== 生死哲理開場 ===== */
+#philosophy-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse at center, rgba(5,0,10,0.98) 0%, rgba(0,0,0,1) 100%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    transition: opacity 1.5s ease-out;
+    cursor: pointer;
+}
+#philosophy-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+.philosophy-text {
+    font-family: var(--f-text);
+    font-size: clamp(1.2rem, 4vw, 2.5rem);
+    color: transparent;
+    text-align: center;
+    line-height: 2;
+    max-width: 90%;
+    animation: revealText 8s ease-out forwards;
+}
+.philosophy-text span {
+    display: inline-block;
+    background: linear-gradient(90deg, #ff2a2a, #ffae00, #00f3ff, #a855f7, #ff2a2a);
+    background-size: 400% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: gradientFlow 4s linear infinite;
+}
+@keyframes revealText {
+    0% { opacity: 0; transform: translateY(30px); }
+    20% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0.7; }
+}
+@keyframes gradientFlow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 400% 50%; }
+}
+.enter-hint {
+    position: absolute;
+    bottom: 15%;
+    font-family: var(--f-mono);
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+}
+
+/* ===== Header ===== */
+header {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(5,8,10,0.98) 0%, rgba(10,15,20,0.95) 100%);
+    border-bottom: 2px solid var(--c-accent);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.brand {
+    font-family: var(--f-head);
+    font-size: clamp(16px, 3vw, 24px);
+    color: var(--c-accent);
+    text-shadow: 0 0 20px rgba(0,243,255,0.6), 0 0 40px rgba(0,243,255,0.3);
+    letter-spacing: 2px;
+}
+.brand-subtitle {
+    color: #666;
+    font-size: clamp(10px, 1.5vw, 13px);
+    margin-left: 10px;
+    font-family: var(--f-mono);
+}
+
+/* ===== 生命心電圖 ===== */
+#ecg-container {
+    width: clamp(120px, 20vw, 220px);
+    height: 50px;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid var(--c-fatal);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 20px rgba(255,42,42,0.3);
+}
+#ecg-canvas { width: 100%; height: 100%; }
+.ecg-label {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    font-family: var(--f-mono);
+    font-size: 9px;
+    color: var(--c-fatal);
+    opacity: 0.8;
+}
+
+/* ===== 深刻哲理區 ===== */
+.wisdom-banner {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(90deg, rgba(20,0,30,0.9), rgba(40,0,20,0.9), rgba(20,0,30,0.9));
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(168,85,247,0.3);
+}
+.wisdom-quote {
+    font-size: clamp(14px, 2.5vw, 20px);
+    line-height: 1.8;
+    color: #d4b8e8;
+    font-style: italic;
+    max-width: 900px;
+    margin: 0 auto;
+    text-shadow: 0 0 30px rgba(168,85,247,0.5);
+}
+.wisdom-source {
+    margin-top: 10px;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--c-soul);
+}
+
+/* ===== 生死一線區 ===== */
+.lifeline-section {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(20,5,10,0.95) 100%);
+    padding: 30px 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+.lifeline-card {
+    background: rgba(10,10,20,0.8);
+    border: 1px solid rgba(255,42,42,0.3);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+.lifeline-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg, transparent, rgba(255,42,42,0.1), transparent 30%);
+    animation: cardRotate 8s linear infinite;
+}
+@keyframes cardRotate {
+    100% { transform: rotate(360deg); }
+}
+.lifeline-card:hover {
+    border-color: var(--c-fatal);
+    box-shadow: 0 0 40px rgba(255,42,42,0.3);
+    transform: translateY(-5px);
+}
+.lifeline-card h3 {
+    font-family: var(--f-head);
+    font-size: 14px;
+    color: var(--c-fatal);
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 1;
+}
+.lifeline-card .big-number {
+    font-family: var(--f-head);
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    color: #fff;
+    text-shadow: 0 0 30px currentColor;
+    position: relative;
+    z-index: 1;
+}
+.lifeline-card .unit {
+    font-family: var(--f-mono);
+    font-size: 14px;
+    color: var(--c-crit);
+    position: relative;
+    z-index: 1;
+}
+.lifeline-card p {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #888;
+    line-height: 1.6;
+    position: relative;
+    z-index: 1;
+}
+
+/* ===== 今生與永恆對比 ===== */
+.eternity-contrast {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 200px;
+}
+.eternity-side {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.eternity-side.mortal {
+    background: linear-gradient(135deg, rgba(30,0,0,0.95), rgba(50,10,10,0.9));
+    border-right: 2px solid rgba(255,42,42,0.5);
+}
+.eternity-side.eternal {
+    background: linear-gradient(135deg, rgba(0,20,30,0.95), rgba(10,30,50,0.9));
+}
+.eternity-side h2 {
+    font-family: 'Creepster', cursive;
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    margin-bottom: 15px;
+}
+.eternity-side.mortal h2 { color: var(--c-fatal); text-shadow: 0 0 30px rgba(255,42,42,0.7); }
+.eternity-side.eternal h2 { color: var(--c-accent); text-shadow: 0 0 30px rgba(0,243,255,0.7); }
+.eternity-side p {
+    font-size: clamp(13px, 2vw, 16px);
+    line-height: 1.8;
+    max-width: 400px;
+}
+.eternity-side.mortal p { color: #ffaaaa; }
+.eternity-side.eternal p { color: #aaffff; }
+.divider-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: linear-gradient(180deg, var(--c-fatal), var(--c-crit), var(--c-accent), var(--c-soul));
+    animation: dividerPulse 3s ease-in-out infinite;
+}
+@keyframes dividerPulse {
+    0%, 100% { opacity: 0.5; box-shadow: 0 0 20px currentColor; }
+    50% { opacity: 1; box-shadow: 0 0 50px currentColor; }
+}
+
+/* ===== 甦醒與昏沉 ===== */
+.awakening-section {
+    position: relative;
+    z-index: 10;
+    background: radial-gradient(ellipse at center, rgba(20,10,30,0.95) 0%, rgba(5,5,10,0.98) 100%);
+    padding: 40px 20px;
+    text-align: center;
+}
+.awakening-title {
+    font-family: 'Creepster', cursive;
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    background: linear-gradient(90deg, var(--c-soul), var(--c-accent), var(--c-crit));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 30px;
+}
+.state-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+.state-box {
+    width: 200px;
+    padding: 25px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.5s ease;
+}
+.state-box.asleep {
+    background: rgba(50,20,20,0.8);
+    border: 2px solid rgba(255,42,42,0.4);
+}
+.state-box.asleep:hover {
+    background: rgba(80,20,20,0.9);
+    box-shadow: 0 0 40px rgba(255,42,42,0.5);
+}
+.state-box.awake {
+    background: rgba(20,40,50,0.8);
+    border: 2px solid rgba(0,243,255,0.4);
+}
+.state-box.awake:hover {
+    background: rgba(20,60,80,0.9);
+    box-shadow: 0 0 40px rgba(0,243,255,0.5);
+}
+.state-box .icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+.state-box h4 {
+    font-family: var(--f-head);
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+.state-box.asleep h4 { color: var(--c-fatal); }
+.state-box.awake h4 { color: var(--c-accent); }
+.state-box p {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.6;
+}
+
+/* ===== Main Layout ===== */
+main {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 340px 1fr 360px;
+    gap: 10px;
+    padding: 10px;
+    min-height: 600px;
+}
+.panel {
+    background: var(--c-panel);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+.p-head {
+    background: linear-gradient(90deg, rgba(0,0,0,0.6), rgba(10,20,30,0.6));
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--c-border);
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--c-accent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ===== 搜尋 + 同齡過濾 ===== */
+.filter-row {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    background: rgba(0,0,0,0.3);
+}
+#search-input, #age-filter {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--c-border);
+    color: #fff;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+#search-input:focus, #age-filter:focus {
+    border-color: var(--c-accent);
+    box-shadow: 0 0 15px rgba(0,243,255,0.3);
+    outline: none;
+}
+#age-filter { max-width: 100px; }
+
+/* ===== Log Stream ===== */
+#log-stream {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 500px;
+}
+#log-stream::-webkit-scrollbar { width: 6px; }
+#log-stream::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+#log-stream::-webkit-scrollbar-thumb { background: var(--c-dim); border-radius: 3px; }
+.log-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(30,40,50,0.5);
+    border-left: 4px solid transparent;
+    position: relative;
+    transition: all 0.3s ease;
+    background: transparent;
+}
+.log-item:hover {
+    background: rgba(255,255,255,0.03);
+    transform: translateX(3px);
+}
+.log-item .date {
+    color: #5a6a7a;
+    font-size: 11px;
+    font-family: var(--f-mono);
+    display: block;
+    margin-bottom: 4px;
+}
+.log-item .age-badge {
+    background: linear-gradient(90deg, rgba(255,174,0,0.3), rgba(255,42,42,0.3));
+    color: var(--c-crit);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-left: 8px;
+    font-family: var(--f-mono);
+}
+.log-item .title { font-size: 14px; line-height: 1.5; }
+.log-item .title a {
+    color: var(--c-accent);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.log-item .title a:hover { color: #fff; text-shadow: 0 0 10px var(--c-accent); }
+.type-FATAL { border-left-color: var(--c-fatal); background: rgba(255,42,42,0.05); }
+.type-FATAL .title a { color: #ffcccc; }
+.type-CRIT { border-left-color: var(--c-crit); background: rgba(255,174,0,0.05); }
+.type-CRIT .title a { color: #ffeebb; }
+.type-ACC { border-left-color: var(--c-acc); background: rgba(0,255,65,0.03); }
+.type-ACC .title a { color: #ccffcc; }
+
+/* ===== 燭光 ===== */
+.candle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: all 0.3s ease;
+    filter: grayscale(0.8);
+}
+.candle:hover {
+    opacity: 0.8;
+    filter: grayscale(0);
+    transform: translateY(-50%) scale(1.2);
+}
+.candle.lit {
+    opacity: 1;
+    filter: grayscale(0);
+    animation: candleFlicker 1.5s ease-in-out infinite;
+}
+@keyframes candleFlicker {
+    0%, 100% {
+        transform: translateY(-50%) scale(1);
+        text-shadow: 0 0 20px #ff6600, 0 0 40px #ff3300;
+    }
+    25% {
+        transform: translateY(-52%) scale(1.05);
+        text-shadow: 0 0 25px #ff8800, 0 0 50px #ff4400;
+    }
+    50% {
+        transform: translateY(-48%) scale(0.98);
+        text-shadow: 0 0 15px #ff5500, 0 0 30px #ff2200;
+    }
+    75% {
+        transform: translateY(-51%) scale(1.02);
+        text-shadow: 0 0 30px #ff7700, 0 0 60px #ff3300;
+    }
+}
+
+/* ===== 點燭統計 ===== */
+#candle-count {
+    text-align: center;
+    padding: 12px;
+    color: var(--c-crit);
+    font-family: var(--f-mono);
+    font-size: 13px;
+    border-top: 1px solid var(--c-border);
+    background: rgba(0,0,0,0.4);
+}
+
+/* ===== 雷達區 ===== */
+.radar-zone {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 380px;
+    background: radial-gradient(circle, rgba(0,243,255,0.03) 0%, transparent 70%);
+    overflow: hidden;
+}
+#radar-canvas, #soul-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+}
+#soul-canvas { pointer-events: none; }
+
+/* ===== 中央統計 ===== */
+.big-stat {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    background: rgba(0,0,0,0.85);
+    padding: 25px 40px;
+    border-radius: 16px;
+    border: 2px solid rgba(0,243,255,0.4);
+    box-shadow: 0 0 50px rgba(0,243,255,0.2), inset 0 0 30px rgba(0,243,255,0.05);
+}
+.big-stat .val {
+    font-family: var(--f-head);
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    color: #fff;
+    text-shadow: 0 0 40px var(--c-accent), 0 0 80px var(--c-accent);
+}
+.big-stat .label {
+    font-family: var(--f-mono);
+    color: var(--c-accent);
+    font-size: 11px;
+    letter-spacing: 3px;
+    margin-top: 8px;
+}
+.big-stat .sub-label {
+    font-size: 13px;
+    color: #888;
+    margin-top: 5px;
+}
+
+/* ===== 統計卡片 ===== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 15px;
+}
+.stat-card {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    padding: 15px 10px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.stat-card .icon { font-size: 24px; margin-bottom: 8px; }
+.stat-card .num {
+    font-family: var(--f-head);
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    color: #fff;
+}
+.stat-card .lbl {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+    margin-top: 5px;
+    font-family: var(--f-mono);
+}
+.stat-card.fatal { border-color: var(--c-fatal); }
+.stat-card.fatal .num { color: var(--c-fatal); text-shadow: 0 0 20px var(--c-fatal); }
+.stat-card.crit { border-color: var(--c-crit); }
+.stat-card.crit .num { color: var(--c-crit); text-shadow: 0 0 20px var(--c-crit); }
+.stat-card.acc { border-color: var(--c-acc); }
+.stat-card.acc .num { color: var(--c-acc); text-shadow: 0 0 20px var(--c-acc); }
+
+/* ===== 今日聚焦 ===== */
+#today-focus {
+    background: linear-gradient(135deg, rgba(50,10,20,0.8), rgba(20,5,10,0.9));
+    border: 1px solid var(--c-fatal);
+    padding: 20px;
+    margin: 10px;
+    border-radius: 10px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+#today-focus::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,42,42,0.1), transparent);
+    animation: focusSweep 4s linear infinite;
+}
+@keyframes focusSweep {
+    100% { left: 100%; }
+}
+#today-focus .focus-title {
+    font-family: var(--f-head);
+    color: var(--c-fatal);
+    font-size: 13px;
+    margin-bottom: 12px;
+    position: relative;
+}
+#today-focus .focus-content {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #ffcccc;
+    position: relative;
+}
+#today-focus .focus-date {
+    font-family: var(--f-mono);
+    color: #666;
+    font-size: 11px;
+    margin-top: 12px;
+    position: relative;
+}
+
+/* ===== 關鍵詞雲 ===== */
+#keyword-cloud {
+    padding: 20px;
+    min-height: 140px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+.keyword-tag {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    background: rgba(255,42,42,0.15);
+    color: #ffaaaa;
+    border: 1px solid rgba(255,42,42,0.3);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.keyword-tag:hover {
+    background: var(--c-fatal);
+    color: #fff;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px var(--c-fatal);
+}
+
+/* ===== 七災年覆蓋 ===== */
+#tribulation-overlay {
+    background: linear-gradient(180deg, rgba(15,0,10,0.95), rgba(30,5,15,0.9));
+    border: 1px solid rgba(200,20,40,0.4);
+    padding: 25px 20px;
+    border-radius: 12px;
+    text-align: center;
+    margin: 10px;
+}
+.trib-title {
+    font-family: 'Creepster', cursive;
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    color: var(--c-fatal);
+    text-shadow: 0 0 30px var(--c-fatal);
+    margin-bottom: 10px;
+}
+.trib-subtitle {
+    color: #aa6666;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+.trib-years {
+    font-family: var(--f-head);
+    font-size: 1.5rem;
+    color: var(--c-crit);
+    text-shadow: 0 0 20px var(--c-crit);
+    margin: 15px 0;
+}
+.trib-link {
+    display: inline-block;
+    color: var(--c-acc);
+    text-decoration: none;
+    padding: 12px 24px;
+    border: 1px solid var(--c-acc);
+    border-radius: 6px;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    transition: all 0.3s ease;
+    margin: 15px 0;
+}
+.trib-link:hover {
+    background: rgba(0,255,65,0.15);
+    box-shadow: 0 0 30px rgba(0,255,65,0.4);
+    transform: translateY(-2px);
+}
+.trib-verse {
+    font-size: 13px;
+    color: #cc8888;
+    line-height: 1.7;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255,42,42,0.2);
+}
+.trib-verse .ref { color: var(--c-fatal); font-family: var(--f-mono); font-size: 11px; }
+
+/* ===== 生命計算器區 ===== */
+.life-section {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(10,15,20,0.75), rgba(20,25,35,0.7));
+    backdrop-filter: blur(5px);
+    padding: 30px 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+.life-card {
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    padding: 25px;
+    text-align: center;
+}
+.life-card h3 {
+    font-family: var(--f-head);
+    font-size: 14px;
+    color: var(--c-accent);
+    margin-bottom: 20px;
+}
+.life-card input {
+    width: 100px;
+    padding: 12px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--c-border);
+    color: #fff;
+    font-family: var(--f-mono);
+    font-size: 18px;
+    text-align: center;
+    border-radius: 6px;
+    margin: 0 10px;
+}
+.life-card input:focus {
+    border-color: var(--c-accent);
+    outline: none;
+    box-shadow: 0 0 20px rgba(0,243,255,0.3);
+}
+.life-card .result {
+    margin-top: 20px;
+    font-family: var(--f-mono);
+    font-size: 16px;
+    color: var(--c-crit);
+    line-height: 1.8;
+}
+.life-card .result strong {
+    font-size: 1.5em;
+    color: #fff;
+}
+/* 4格統計樣式 */
+.life-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+}
+.life-stat-box {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,243,255,0.3);
+    border-radius: 8px;
+    padding: 15px 10px;
+    text-align: center;
+}
+.life-stat-box .stat-value {
+    font-family: var(--f-head);
+    font-size: clamp(18px, 3vw, 24px);
+    color: var(--c-accent);
+    font-weight: bold;
+}
+.life-stat-box .stat-label {
+    font-size: 11px;
+    color: #888;
+    margin-top: 5px;
+}
+.btn {
+    background: rgba(0,243,255,0.1);
+    border: 1px solid var(--c-accent);
+    color: var(--c-accent);
+    padding: 10px 20px;
+    font-family: var(--f-head);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    margin-top: 15px;
+}
+.btn:hover {
+    background: var(--c-accent);
+    color: #000;
+    box-shadow: 0 0 25px var(--c-accent);
+}
+
+/* ===== 每日經文 + 每日一問 ===== */
+.daily-section {
+    position: relative;
+    z-index: 10;
+    background: rgba(5,10,15,0.95);
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+#daily-verse, #daily-question {
+    background: rgba(20,10,30,0.8);
+    border-left: 4px solid var(--c-soul);
+    padding: 20px;
+    font-size: 14px;
+    line-height: 1.8;
+    border-radius: 0 8px 8px 0;
+}
+#daily-verse {
+    border-left-color: var(--c-fatal);
+    background: rgba(30,10,15,0.8);
+}
+#daily-question {
+    border-left-color: var(--c-accent);
+    background: rgba(10,20,30,0.8);
+}
+
+/* ===== 貼上區 ===== */
+.paste-zone {
+    position: relative;
+    z-index: 10;
+    background: rgba(10,15,20,0.95);
+    padding: 20px;
+    border-bottom: 1px solid var(--c-border);
+}
+.paste-area {
+    width: 100%;
+    height: 100px;
+    background: rgba(0,0,0,0.6);
+    color: #eee;
+    border: 1px solid var(--c-border);
+    font-family: var(--f-mono);
+    font-size: 12px;
+    padding: 12px;
+    resize: vertical;
+    border-radius: 6px;
+}
+.paste-area:focus {
+    border-color: var(--c-accent);
+    outline: none;
+}
+.paste-buttons {
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ===== 聖經連結區 ===== */
+.bible-links {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(25,10,35,0.95), rgba(15,5,25,0.9));
+    border-top: 1px solid rgba(168,85,247,0.3);
+    padding: 25px 20px 80px 20px; /* 底部加大 padding 避免被跑馬燈覆蓋 */
+}
+.bible-links h3 {
+    color: var(--c-soul);
+    font-family: 'Creepster', cursive;
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px var(--c-soul);
+}
+.link-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+.link-card {
+    background: rgba(0,0,0,0.5);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(168,85,247,0.2);
+    transition: all 0.3s ease;
+}
+.link-card:hover {
+    border-color: var(--c-soul);
+    box-shadow: 0 0 20px rgba(168,85,247,0.3);
+}
+.link-card .link-title {
+    color: var(--c-accent);
+    font-size: 12px;
+    margin-bottom: 8px;
+    font-family: var(--f-mono);
+}
+.link-card a {
+    color: #bb99dd;
+    text-decoration: none;
+    font-size: 12px;
+    transition: color 0.2s;
+}
+.link-card a:hover { color: #fff; }
+
+/* ===== 固定跑馬燈 ===== */
+#doom-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 45px;
+    background: linear-gradient(90deg, #180000, #300005, #180000);
+    border-top: 3px solid var(--c-fatal);
+    z-index: 9999;
+    overflow: hidden;
+    line-height: 45px;
+}
+#footer-text {
+    display: inline-block;
+    white-space: nowrap;
+    padding-left: 100%;
+    animation: marquee 150s linear infinite;
+    color: #ff9999;
+    font-family: var(--f-mono);
+    font-size: 13px;
+}
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+/* ===== 默哀模式 ===== */
+body.mourning-mode {
+    filter: grayscale(0.6);
+}
+body.mourning-mode .candle.lit {
+    filter: grayscale(0) !important;
+}
+
+/* ===== 手機版響應式 ===== */
+@media (max-width: 1024px) {
+    main { grid-template-columns: 1fr; }
+    .eternity-contrast { grid-template-columns: 1fr; }
+    .eternity-side.mortal { border-right: none; border-bottom: 2px solid rgba(255,42,42,0.5); }
+    .divider-line { display: none; }
+}
+@media (max-width: 768px) {
+    body { padding-bottom: 55px; }
+    header { flex-direction: column; text-align: center; gap: 15px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .philosophy-text { font-size: 1.2rem; padding: 20px; }
+    .state-toggle { gap: 20px; }
+    .state-box { width: 160px; padding: 20px; }
+}
+@media (max-width: 480px) {
+    .lifeline-section { grid-template-columns: 1fr; }
+    .life-section { grid-template-columns: 1fr; }
+    .daily-section { grid-template-columns: 1fr; }
+    .big-stat { padding: 20px; }
+    .big-stat .val { font-size: 2rem; }
+}
+
+/* ===== 死亡同步計數器 ===== */
+#death-counter {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: linear-gradient(180deg, rgba(20,0,0,0.95), rgba(0,0,0,0.9));
+    border-bottom: 1px solid rgba(139,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 25px;
+    z-index: 10000;
+    font-family: var(--f-mono);
+    font-size: 12px;
+}
+.counter-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.counter-label { color: #666; }
+.counter-value {
+    color: #ff4444;
+    font-size: 15px;
+    min-width: 50px;
+    text-shadow: 0 0 10px rgba(255,68,68,0.5);
+}
+.counter-since {
+    color: #444;
+    font-size: 10px;
+}
+.back-to-portal {
+    color: var(--c-accent);
+    text-decoration: none;
+    font-size: 11px;
+    padding: 5px 10px;
+    border: 1px solid var(--c-accent);
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+.back-to-portal:hover {
+    background: var(--c-accent);
+    color: #000;
+}
+@media (max-width: 768px) {
+    #death-counter {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 8px;
+        gap: 8px;
+    }
+    .counter-since { display: none; }
+}
+header { margin-top: 50px; }
+</style>
+</head>
+<body>
+
+<!-- ===== 全螢幕粒子背景 ===== -->
+<canvas id="particle-bg"></canvas>
+
+<!-- ===== 哲理開場 ===== -->
+<div id="philosophy-overlay">
+    <div class="philosophy-text">
+        <span>生死只在一線之間</span><br>
+        <span>今生與永恆，甦醒與昏沉</span><br><br>
+        <span style="font-size:0.7em;opacity:0.7;">一息尚存，萬事可期</span><br>
+        <span style="font-size:0.7em;opacity:0.7;">一息已斷，萬事皆空</span>
+    </div>
+    <div class="enter-hint">[ 點擊進入生死記錄儀 ]</div>
+</div>
+
+<!-- ===== 死亡同步計數器 ===== -->
+<div id="death-counter">
+    <div class="counter-item">
+        <span class="counter-label">你進入後，全球已有</span>
+        <span class="counter-value" id="death-since-entry">0</span>
+        <span class="counter-label">人死亡</span>
+    </div>
+    <div class="counter-item">
+        <span class="counter-label">今日全球約</span>
+        <span class="counter-value" id="death-today">0</span>
+        <span class="counter-label">人離世</span>
+    </div>
+    <div class="counter-since">（每秒約 1.8 人・WHO 全球死亡率估算）</div>
+    <a href="index.html" class="back-to-portal">← 返回門戶</a>
+</div>
+
+<!-- ===== Header ===== -->
+<header>
+    <div>
+        <div class="brand">VITAL LIFE MONITOR</div>
+        <span class="brand-subtitle">生死記錄儀 V9.0 | 2019 COVID → 2028 END-TIME?</span>
+    </div>
+    <div id="ecg-container">
+        <span class="ecg-label">VITAL SIGNS</span>
+        <canvas id="ecg-canvas"></canvas>
+    </div>
+    <div id="period-display" style="color:var(--c-crit);font-family:var(--f-mono);padding:8px 16px;border:1px solid var(--c-crit);border-radius:4px;font-size:12px;">
+        等待數據載入...
+    </div>
+</header>
+
+<!-- ===== 深刻哲理區 ===== -->
+<div class="wisdom-banner">
+    <div class="wisdom-quote" id="wisdom-quote">
+        「你們要謹慎行事，不要像愚昧人，當像智慧人。要愛惜光陰，因為現今的世代邪惡。」
+    </div>
+    <div class="wisdom-source" id="wisdom-source">— 以弗所書 5:15-16</div>
+</div>
+
+<!-- ===== 生死一線區 ===== -->
+<div class="lifeline-section">
+    <div class="lifeline-card">
+        <h3>⏱️ 末次號筒倒數</h3>
+        <div class="big-number" id="countdown-days">---</div>
+        <div class="unit">天</div>
+        <p id="countdown-detail">距離 2027-10-01</p>
+    </div>
+    <div class="lifeline-card">
+        <h3>💀 你已活了</h3>
+        <div class="big-number" id="days-lived">---</div>
+        <div class="unit">天</div>
+        <p>每一天都是恩典</p>
+    </div>
+    <div class="lifeline-card">
+        <h3>⏳ 假設還剩</h3>
+        <div class="big-number" id="days-left">---</div>
+        <div class="unit">天</div>
+        <p>活到 85 歲的話</p>
+    </div>
+    <div class="lifeline-card">
+        <h3>📊 生命進度</h3>
+        <div class="big-number" id="life-progress">--%</div>
+        <div class="unit">已消耗</div>
+        <p>時間不等人</p>
+    </div>
+</div>
+
+<!-- ===== 今生與永恆對比 ===== -->
+<div class="eternity-contrast">
+    <div class="eternity-side mortal">
+        <h2>今 生</h2>
+        <p>
+            肉體會朽壞，榮華會消逝<br>
+            一切的追求，轉眼成空<br>
+            「凡有血氣的盡都如草<br>
+            他的美容都像野地的花」
+        </p>
+    </div>
+    <div class="divider-line"></div>
+    <div class="eternity-side eternal">
+        <h2>永 恆</h2>
+        <p>
+            靈魂是永存的<br>
+            你將往何處去？<br>
+            「按著定命，人人都有一死<br>
+            死後且有審判」
+        </p>
+    </div>
+</div>
+
+<!-- ===== 甦醒與昏沉 ===== -->
+<div class="awakening-section">
+    <div class="awakening-title">甦 醒 與 昏 沉</div>
+    <div class="state-toggle">
+        <div class="state-box asleep" onclick="toggleMourningMode()">
+            <div class="icon">🌑</div>
+            <h4>昏 沉</h4>
+            <p>未曾思索來處<br>不問歸向何方<br>日復一日，年復一年</p>
+        </div>
+        <div class="state-box awake">
+            <div class="icon">✧</div>
+            <h4>甦 醒</h4>
+            <p>知道生命有限<br>活出每天的價值<br>為永恆預備</p>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 每日經文 + 每日一問 ===== -->
+<div class="daily-section">
+    <div id="daily-verse">📖 載入中...</div>
+    <div id="daily-question">💭 載入中...</div>
+</div>
+
+<!-- ===== 生命計算器區 ===== -->
+<div class="life-section">
+    <div class="life-card">
+        <h3>⏳ 你的生命計算器</h3>
+        <div>
+            你的年齡：<input type="number" id="user-age" value="30" min="1" max="120"> 歲
+        </div>
+        <button class="btn" onclick="calculateLife()">計 算</button>
+        <!-- 4格統計顯示 -->
+        <div class="life-stats-grid">
+            <div class="life-stat-box">
+                <div class="stat-value" id="days-lived-box">10,950</div>
+                <div class="stat-label">已活天數</div>
+            </div>
+            <div class="life-stat-box">
+                <div class="stat-value" id="days-left-box" style="color: var(--c-acc);">20,075</div>
+                <div class="stat-label">剩餘天數</div>
+            </div>
+            <div class="life-stat-box">
+                <div class="stat-value" id="life-percent-box" style="color: var(--c-crit);">35.3%</div>
+                <div class="stat-label">生命已用</div>
+            </div>
+            <div class="life-stat-box">
+                <div class="stat-value" id="to-2027-box" style="color: var(--c-fatal);">--</div>
+                <div class="stat-label">吹角節已過</div>
+            </div>
+        </div>
+        <div class="result" id="life-result" style="font-size:13px;margin-top:10px;">輸入你的年齡，計算生命進度</div>
+    </div>
+    <div class="life-card">
+        <h3>🔍 同齡過濾器</h3>
+        <div>
+            查看：<input type="number" id="peer-age" placeholder="年齡" min="1" max="120"> ± 5歲
+        </div>
+        <button class="btn" onclick="filterByAge()">過 濾</button>
+        <div class="result" id="peer-result">輸入年齡，查看同齡人的記錄</div>
+    </div>
+</div>
+
+<!-- ===== 貼上區 ===== -->
+<div class="paste-zone">
+    <textarea id="paste-input" class="paste-area" placeholder="把資料貼在這裡（日期 TAB 網址 TAB 標題）&#10;或等待自動載入 data.txt"></textarea>
+    <div class="paste-buttons">
+        <button class="btn" onclick="loadPastedData()">📥 載入貼上內容</button>
+        <button class="btn" onclick="document.getElementById('file-input').click()">📂 選擇檔案</button>
+        <button class="btn" onclick="exportSnapshot()">💾 匯出 HTML</button>
+        <button class="btn" onclick="toggleMourningMode()">🕯️ 默哀模式</button>
+        <input type="file" id="file-input" accept=".txt,.tsv" style="display:none;" onchange="handleFile(event)">
+    </div>
+</div>
+
+<!-- ===== Main Layout ===== -->
+<main>
+    <!-- 左側：事件流 -->
+    <div class="panel">
+        <div class="p-head">
+            <span>📡 INCOMING FEED</span>
+            <span>生死事件流</span>
+        </div>
+        <div class="filter-row">
+            <input type="text" id="search-input" placeholder="🔍 搜尋關鍵字..." oninput="filterEvents()">
+            <input type="number" id="age-filter" placeholder="年齡" min="1" max="120">
+        </div>
+        <div id="log-stream"></div>
+        <div id="candle-count">🕯️ 已有 <span id="total-candles">0</span> 人點燭哀悼</div>
+    </div>
+
+    <!-- 中間：雷達 + 統計 -->
+    <div class="panel">
+        <div class="radar-zone">
+            <canvas id="radar-canvas"></canvas>
+            <canvas id="soul-canvas"></canvas>
+            <div class="big-stat">
+                <div class="val" id="total-count">0</div>
+                <div class="label">TOTAL INCIDENTS</div>
+                <div class="sub-label">總個案數</div>
+            </div>
+        </div>
+
+        <!-- 統計卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card fatal">
+                <div class="icon">☠️</div>
+                <div class="num" id="stat-fatal">0</div>
+                <div class="lbl">FATAL 猝死</div>
+            </div>
+            <div class="stat-card crit">
+                <div class="icon">⚠️</div>
+                <div class="num" id="stat-crit">0</div>
+                <div class="lbl">CRITICAL 危殆</div>
+            </div>
+            <div class="stat-card acc">
+                <div class="icon">🔥</div>
+                <div class="num" id="stat-acc">0</div>
+                <div class="lbl">ACCIDENT 意外</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">📊</div>
+                <div class="num" id="stat-other">0</div>
+                <div class="lbl">OTHER 其他</div>
+            </div>
+        </div>
+
+        <!-- 今日聚焦 -->
+        <div id="today-focus">
+            <div class="focus-title">📍 今日聚焦 / TODAY'S FOCUS</div>
+            <div class="focus-content">載入資料後顯示...</div>
+            <div class="focus-date"></div>
+        </div>
+    </div>
+
+    <!-- 右側：關鍵詞雲 + 七災年 -->
+    <div class="panel">
+        <div class="p-head"><span>☁️ KEYWORD CLOUD</span><span>關鍵詞雲</span></div>
+        <div id="keyword-cloud"></div>
+
+        <!-- 七災年覆蓋 -->
+        <div id="tribulation-overlay">
+            <div class="trib-title">七 災 年</div>
+            <div class="trib-subtitle">世界痛苦漸增的七年</div>
+            <div class="trib-years">2019 — 2028</div>
+            <a href="https://greattribulaton2028.github.io/-/" target="_blank" class="trib-link">
+                GREAT TRIBULATION<br>COUNTDOWN → CLICK
+            </a>
+            <div class="trib-verse">
+                「我又看見死了的人，無論大小，都站在寶座前。案卷展開了，並且另有一卷展開，就是生命冊。死了的人，都憑著這些案卷所記載的，照他們所行的受審判。」
+                <br><span class="ref">— 啟示錄 20:12</span>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ===== 聖經連結區 ===== -->
+<div class="bible-links">
+    <h3>《聖經·大災難·資訊》</h3>
+    <div class="link-grid">
+        <div class="link-card">
+            <div class="link-title">01 資訊</div>
+            <a href="https://e.pcloud.link/publink/show?code=kZt8zaZd7iPCbuRK7mXuE6Lg4fjEJ933Sr7" target="_blank">pCloud 連結 →</a>
+        </div>
+        <div class="link-card">
+            <div class="link-title">02 瘟疫中的邪術</div>
+            <a href="https://e.pcloud.link/publink/show?code=kZU8zaZLBosh9pTrp8O7DGN7wlrDJlU3JDy" target="_blank">pCloud 連結 →</a>
+        </div>
+        <div class="link-card">
+            <div class="link-title">03 第四次工業革命</div>
+            <a href="https://e.pcloud.link/publink/show?code=kZN8zaZXgsGC7Chqaprdidpa07hMSrFWyGV" target="_blank">pCloud 連結 →</a>
+        </div>
+        <div class="link-card">
+            <div class="link-title">04 聖經資訊（廣東話）</div>
+            <a href="https://e.pcloud.link/publink/show?code=kZG8zaZpg5DO5gtmuhmDUrC4tjRCpJ7QT8V" target="_blank">pCloud 連結 →</a>
+        </div>
+        <div class="link-card">
+            <div class="link-title">05 聖經資訊（普通話）</div>
+            <a href="https://e.pcloud.link/publink/show?code=kZG8zaZpg5DO5gtmuhmDUrC4tjRCpJ7QT8V" target="_blank">pCloud 連結 →</a>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 固定跑馬燈 ===== -->
+<footer id="doom-footer">
+    <div id="footer-text">
+        ◈ 生死只在一線之間，一息尚存萬事可期，一息已斷萬事皆空
+        ◈ 全球大重置 2017→2027→第四次工業革命→Great Reset→電子貨幣化
+        ◈ You will own nothing but you will be happy → 你將一無所有，但你會快樂？
+        ◈ (2019-2028) > 瘟疫 > 戰爭 > 經濟衰退 > 持續健康惡化 > 2026-2028 更嚴峻
+        ◈ COVID > DNA→mRNA→Nanopatch→Luciferase→人工晶片→人自願被轉化成GMO→專利下的商品
+        ◈ 第40個禧年 → 末次號筒 → 七年大災難 → End...
+        ◈ 「其實明天如何，你們還不知道。你們的生命是甚麼呢？你們原來是一片雲霧，出現少時就不見了。」— 雅各書 4:14
+        ◈ 今生與永恆，甦醒與昏沉，你選擇哪一邊？
+    </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// 生死記錄儀 V9.0 - 末世史詩版
+// ═══════════════════════════════════════════════════════════════
+
+// === 全域變數 ===
+let allEvents = [];
+let filteredEvents = [];
+let candleCounts = JSON.parse(localStorage.getItem('candleCounts') || '{}');
+let totalCandles = Object.values(candleCounts).reduce((a, b) => a + b, 0);
+let userAge = 30;
+
+// === 每日經文庫（深刻版）===
+const dailyVerses = [
+    { text: "生有時，死有時；栽種有時，拔出所栽種的也有時。", ref: "傳道書 3:2" },
+    { text: "其實明天如何，你們還不知道。你們的生命是甚麼呢？你們原來是一片雲霧，出現少時就不見了。", ref: "雅各書 4:14" },
+    { text: "你們要謹慎行事，不要像愚昧人，當像智慧人。要愛惜光陰，因為現今的世代邪惡。", ref: "以弗所書 5:15-16" },
+    { text: "按著定命，人人都有一死，死後且有審判。", ref: "希伯來書 9:27" },
+    { text: "我們一生的年日是七十歲，若是強壯可到八十歲；但其中所矜誇的不過是勞苦愁煩，轉眼成空，我們便如飛而去。", ref: "詩篇 90:10" },
+    { text: "凡有血氣的盡都如草；他的美容都像野地的花。草必枯乾，花必凋殘。", ref: "以賽亞書 40:6-7" },
+    { text: "神愛世人，甚至將他的獨生子賜給他們，叫一切信他的，不致滅亡，反得永生。", ref: "約翰福音 3:16" },
+    { text: "那殺身體、不能殺靈魂的，不要怕他們；惟有能把身體和靈魂都滅在地獄裡的，正要怕他。", ref: "馬太福音 10:28" },
+    { text: "我聽見從天上有聲音說：你要寫下：從今以後，在主裡面而死的人有福了！", ref: "啟示錄 14:13" },
+    { text: "你求告我，我就應允你，並將你所不知道、又大又難的事指示你。", ref: "耶利米書 33:3" },
+    { text: "人若賺得全世界，賠上自己的生命，有甚麼益處呢？人還能拿甚麼換生命呢？", ref: "馬太福音 16:26" },
+    { text: "不要為那必壞的食物勞力，要為那存到永生的食物勞力。", ref: "約翰福音 6:27" }
+];
+
+// === 每日一問庫（深刻版）===
+const dailyQuestions = [
+    "💭 如果今天是你生命的最後一天，你會做什麼？有沒有未完成的遺願？",
+    "💭 你上一次認真思考死亡是什麼時候？那次思考改變了你什麼？",
+    "💭 有沒有什麼話，你一直想對某人說卻還沒說出口？為什麼不說？",
+    "💭 你覺得自己活得有意義嗎？如果不是，什麼才是有意義的人生？",
+    "💭 如果可以給十年前的自己一個忠告，你會說什麼？",
+    "💭 你最害怕的是死亡本身，還是死前的痛苦，還是死後的未知？",
+    "💭 有沒有人因為你的存在而感到幸福？你為他們做過什麼？",
+    "💭 你相信死後還有生命嗎？這個信念如何影響你現在的生活？",
+    "💭 你最想被人記住的是什麼？當人們提起你的名字時，會想起什麼？",
+    "💭 今天，你感恩什麼？有沒有什麼是你一直忽略的恩典？",
+    "💭 如果你只剩下一年的生命，你會如何重新安排優先次序？",
+    "💭 你是在「活著」還是「生存」？兩者有什麼分別？"
+];
+
+// === 智慧名言庫 ===
+const wisdomQuotes = [
+    { text: "未知生，焉知死？", source: "孔子" },
+    { text: "人生自古誰無死，留取丹心照汗青。", source: "文天祥" },
+    { text: "死亡不是生命的終結，遺忘才是。", source: "電影《尋夢環遊記》" },
+    { text: "活著的時候要想到死，死的時候要想到永生。", source: "聖奧古斯丁" },
+    { text: "人終究要死，但真正的問題是：你是否真的活過？", source: "威廉·華萊士" },
+    { text: "時間是最公平的，每個人每天都只有24小時。", source: "卡內基" },
+    { text: "生命不在於長短，而在於深度。", source: "愛默生" }
+];
+
+// === 分類關鍵字 ===
+const fatalKeywords = ["猝死", "死亡", "不治", "暴斃", "身亡", "溺斃", "離世", "過身", "心臟驟停", "心肌梗塞", "腦溢血", "器官衰竭", "送院不治", "宣告死亡"];
+const critKeywords = ["危殆", "昏迷", "命危", "搶救", "重傷", "心跳停", "遇溺", "重症", "病危"];
+const accKeywords = ["意外", "車禍", "撞", "火警", "跌", "墮", "爆炸", "工傷", "失控", "翻車", "塌陷"];
+
+// === 分類函數 ===
+function categorize(title) {
+    const t = title.toLowerCase();
+    for (let kw of fatalKeywords) if (t.includes(kw)) return 'FATAL';
+    for (let kw of critKeywords) if (t.includes(kw)) return 'CRIT';
+    for (let kw of accKeywords) if (t.includes(kw)) return 'ACC';
+    return 'OTHER';
+}
+
+// === 年齡推算 ===
+function extractAge(title) {
+    const patterns = [/(\d{1,3})\s*歲/, /(\d{1,2})旬/, /年約\s*(\d{1,3})/, /(\d{1,3})\s*yo/i];
+    for (let p of patterns) {
+        const match = title.match(p);
+        if (match) {
+            let age = parseInt(match[1]);
+            if (title.includes('旬') && age < 20) age *= 10;
+            if (age > 0 && age < 150) return age;
+        }
+    }
+    return null;
+}
+
+// === 解碼函數 ===
+function safeDecode(str) {
+    try { return decodeURIComponent(str.replace(/\+/g, ' ')); }
+    catch (e) { return str; }
+}
+
+// === 解析數據 ===
+function parseData(raw) {
+    const lines = raw.split(/\r?\n/).filter(l => l.trim());
+    const events = [];
+
+    for (let line of lines) {
+        let text = safeDecode(line);
+        let parts = text.split('\t');
+        if (parts.length < 3) parts = text.split(/\s{2,}/);
+        if (parts.length < 2) continue;
+
+        let dateStr = parts[0].trim().replace(/[\[\]]/g, '');
+        let url = parts.find(p => /^https?:\/\/[^\s\t]+/.test(p)) || '#';
+        let title = parts.filter(p => p !== dateStr && p !== url).map(safeDecode).join(' ').trim();
+
+        if (!dateStr || !title) continue;
+
+        let dateParts = dateStr.split(/[\/-]/);
+        if (dateParts.length === 3) {
+            let a = parseInt(dateParts[0], 10);
+            let b = parseInt(dateParts[1], 10);
+            let c = parseInt(dateParts[2], 10);
+            let d, m, y;
+
+            if (c > 1000) { d = a; m = b; y = c; }
+            else if (a > 1000) { y = a; m = b; d = c; }
+            else { d = a; m = b; y = 2000 + c; }
+
+            y = String(y).padStart(4, '20');
+            m = String(m).padStart(2, '0');
+            d = String(d).padStart(2, '0');
+            dateStr = `${y}-${m}-${d}`;
+
+            if (isNaN(new Date(dateStr).getTime())) continue;
+        } else continue;
+
+        events.push({
+            date: dateStr,
+            url,
+            title,
+            category: categorize(title),
+            age: extractAge(title)
+        });
+    }
+
+    events.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return events;
+}
+
+// === 關鍵詞統計 ===
+function getKeywordStats(events) {
+    const keywords = {};
+    const importantWords = ['猝死', '心臟', '車禍', '意外', '暈倒', '昏迷', '火警', '墮樓', '溺斃', '工傷', '自殺', '跳樓', '中風', '癌症', '心肌梗塞', '腦溢血', '過勞', '危殆', '病逝'];
+
+    for (let e of events) {
+        for (let kw of importantWords) {
+            if (e.title.includes(kw)) {
+                keywords[kw] = (keywords[kw] || 0) + 1;
+            }
+        }
+    }
+    return Object.entries(keywords).sort((a, b) => b[1] - a[1]).slice(0, 15);
+}
+
+// === 渲染事件列表 ===
+function renderList(events) {
+    const container = document.getElementById('log-stream');
+    container.innerHTML = '';
+
+    for (let e of events) {
+        const div = document.createElement('div');
+        div.className = `log-item type-${e.category}`;
+
+        const ageDisplay = e.age ? `<span class="age-badge">約${e.age}歲</span>` : '';
+        const eventId = `${e.date}-${e.title.slice(0, 20)}`;
+        const isLit = candleCounts[eventId] > 0;
+
+        div.innerHTML = `
+            <span class="date">${e.date} ${ageDisplay}</span>
+            <span class="title"><a href="${e.url}" target="_blank">${e.title}</a></span>
+            <span class="candle ${isLit ? 'lit' : ''}" data-id="${eventId}" onclick="lightCandle(this)">🕯️</span>
+        `;
+        container.appendChild(div);
+    }
+}
+
+// === 點燭功能 ===
+function lightCandle(el) {
+    const id = el.dataset.id;
+    candleCounts[id] = (candleCounts[id] || 0) + 1;
+    totalCandles++;
+    el.classList.add('lit');
+    localStorage.setItem('candleCounts', JSON.stringify(candleCounts));
+    document.getElementById('total-candles').textContent = totalCandles;
+
+    // 顯示短暫訊息
+    el.style.transform = 'translateY(-50%) scale(1.5)';
+    setTimeout(() => el.style.transform = '', 300);
+}
+
+// === 更新統計 ===
+function updateStats(events) {
+    const fatal = events.filter(e => e.category === 'FATAL').length;
+    const crit = events.filter(e => e.category === 'CRIT').length;
+    const acc = events.filter(e => e.category === 'ACC').length;
+    const other = events.filter(e => e.category === 'OTHER').length;
+
+    document.getElementById('total-count').textContent = events.length;
+    document.getElementById('stat-fatal').textContent = fatal;
+    document.getElementById('stat-crit').textContent = crit;
+    document.getElementById('stat-acc').textContent = acc;
+    document.getElementById('stat-other').textContent = other;
+
+    // 更新期間顯示
+    if (events.length > 0) {
+        const dates = events.map(e => e.date).sort();
+        document.getElementById('period-display').textContent =
+            `${dates[0]} → ${dates[dates.length - 1]} | ${events.length} 宗`;
+    }
+}
+
+// === 渲染關鍵詞雲 ===
+function renderKeywordCloud(events) {
+    const container = document.getElementById('keyword-cloud');
+    const stats = getKeywordStats(events);
+
+    if (stats.length === 0) {
+        container.innerHTML = '<span style="color:#666">暫無關鍵詞數據</span>';
+        return;
+    }
+
+    const maxCount = stats[0][1];
+    container.innerHTML = stats.map(([kw, count]) => {
+        const size = 0.8 + (count / maxCount) * 0.6;
+        return `<span class="keyword-tag" style="font-size:${size}em">${kw}(${count})</span>`;
+    }).join('');
+}
+
+// === 今日聚焦 ===
+function showTodayFocus(events) {
+    if (!events.length) return;
+
+    const fatalEvents = events.filter(e => e.category === 'FATAL');
+    const pool = fatalEvents.length > 0 ? fatalEvents : events;
+    const random = pool[Math.floor(Math.random() * pool.length)];
+
+    document.querySelector('#today-focus .focus-content').textContent = random.title;
+    document.querySelector('#today-focus .focus-date').textContent = random.date;
+}
+
+// === 搜尋過濾 ===
+function filterEvents() {
+    const query = document.getElementById('search-input').value.toLowerCase().trim();
+    const ageVal = document.getElementById('age-filter').value;
+
+    filteredEvents = allEvents.filter(e => {
+        let match = true;
+        if (query) match = e.title.toLowerCase().includes(query) || e.date.includes(query);
+        if (ageVal && match) {
+            const targetAge = parseInt(ageVal);
+            if (e.age) match = Math.abs(e.age - targetAge) <= 5;
+            else match = false;
+        }
+        return match;
+    });
+
+    renderList(filteredEvents);
+    updateStats(filteredEvents);
+}
+
+// === 同齡過濾 ===
+function filterByAge() {
+    const ageVal = document.getElementById('peer-age').value;
+    if (!ageVal) {
+        document.getElementById('peer-result').textContent = '請輸入年齡';
+        return;
+    }
+
+    const targetAge = parseInt(ageVal);
+    const matches = allEvents.filter(e => e.age && Math.abs(e.age - targetAge) <= 5);
+
+    document.getElementById('peer-result').innerHTML =
+        matches.length > 0
+            ? `找到 <strong>${matches.length}</strong> 宗 ${targetAge}±5歲 的記錄`
+            : '未找到符合條件的記錄';
+
+    if (matches.length > 0) {
+        filteredEvents = matches;
+        renderList(filteredEvents);
+        updateStats(filteredEvents);
+    }
+}
+
+// === 生命計算器 ===
+function calculateLife() {
+    const age = parseInt(document.getElementById('user-age').value) || 30;
+    userAge = age;
+    const lifeExpectancy = 85;
+    const daysLived = age * 365;
+    const daysRemaining = Math.max(0, (lifeExpectancy - age) * 365);
+    const percentUsed = ((age / lifeExpectancy) * 100).toFixed(1);
+
+    // 計算距2027吹角節進度（從2019/12/1起算）
+    const startDate = new Date('2019-12-01T00:00:00+08:00');
+    const target2027 = new Date('2027-10-01T00:00:00+08:00'); // 吹角節
+    const now = new Date();
+    const totalDuration = target2027 - startDate;
+    const elapsed = now - startDate;
+    const daysTo2027 = Math.max(0, Math.ceil((target2027 - now) / 86400000));
+    const percentTo2027 = Math.min(100, ((elapsed / totalDuration) * 100)).toFixed(1);
+
+    // 更新4格統計
+    const daysLivedBox = document.getElementById('days-lived-box');
+    const daysLeftBox = document.getElementById('days-left-box');
+    const lifePercentBox = document.getElementById('life-percent-box');
+    const to2027Box = document.getElementById('to-2027-box');
+
+    if (daysLivedBox) daysLivedBox.textContent = daysLived.toLocaleString();
+    if (daysLeftBox) daysLeftBox.textContent = daysRemaining.toLocaleString();
+    if (lifePercentBox) lifePercentBox.textContent = percentUsed + '%';
+    if (to2027Box) to2027Box.textContent = percentTo2027 + '%';
+
+    // 更新舊版卡片（如果存在）
+    const oldDaysLived = document.getElementById('days-lived');
+    const oldDaysLeft = document.getElementById('days-left');
+    const oldProgress = document.getElementById('life-progress');
+    if (oldDaysLived) oldDaysLived.textContent = daysLived.toLocaleString();
+    if (oldDaysLeft) oldDaysLeft.textContent = daysRemaining.toLocaleString();
+    if (oldProgress) oldProgress.textContent = percentUsed + '%';
+
+    // 更新結果文字
+    const weeksLeft = Math.floor(daysRemaining / 7);
+    const monthsLeft = Math.floor(daysRemaining / 30);
+
+    document.getElementById('life-result').innerHTML = `
+        <span style="color:var(--c-dim);font-size:11px;">假設壽命85歲，餘生約</span><br>
+        約 <strong>${weeksLeft.toLocaleString()}</strong> 週 / <strong>${monthsLeft}</strong> 月<br>
+        <span style="color:var(--c-fatal);">距 2027 吹角節還有 ${daysTo2027} 天（已過 ${percentTo2027}%）</span>
+    `;
+}
+
+// === 倒數計時 ===
+function updateCountdown() {
+    const target = new Date('2027-10-01T00:00:00+08:00');
+    const now = new Date();
+    const diff = target - now;
+
+    if (diff <= 0) {
+        document.getElementById('countdown-days').textContent = '0';
+        document.getElementById('countdown-detail').textContent = '時候已到';
+        return;
+    }
+
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+
+    document.getElementById('countdown-days').textContent = days.toLocaleString();
+    document.getElementById('countdown-detail').textContent =
+        `${hours}時${mins}分 → 2027-10-01`;
+}
+
+// === 每日內容 ===
+function showDailyContent() {
+    const today = new Date().getDate();
+    const verse = dailyVerses[today % dailyVerses.length];
+    const question = dailyQuestions[today % dailyQuestions.length];
+    const wisdom = wisdomQuotes[today % wisdomQuotes.length];
+
+    document.getElementById('daily-verse').innerHTML =
+        `📖 <strong>今日經文：</strong>${verse.text}<br><span style="color:#ff6666;font-size:12px;">— ${verse.ref}</span>`;
+    document.getElementById('daily-question').innerHTML = question;
+
+    // 更新頂部智慧名言
+    document.getElementById('wisdom-quote').textContent = `「${wisdom.text}」`;
+    document.getElementById('wisdom-source').textContent = `— ${wisdom.source}`;
+}
+
+// === 默哀模式 ===
+function toggleMourningMode() {
+    document.body.classList.toggle('mourning-mode');
+}
+
+// === 載入貼上數據 ===
+function loadPastedData() {
+    const input = document.getElementById('paste-input');
+    if (!input || !input.value.trim()) return;
+
+    allEvents = parseData(input.value);
+    filteredEvents = [...allEvents];
+
+    renderList(filteredEvents);
+    updateStats(filteredEvents);
+    renderKeywordCloud(filteredEvents);
+    showTodayFocus(filteredEvents);
+
+    console.log(`✅ 已載入 ${allEvents.length} 筆數據`);
+}
+
+// === 檔案處理 ===
+function handleFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('paste-input').value = e.target.result;
+        loadPastedData();
+    };
+    reader.readAsText(file);
+}
+
+// === 自動載入 data.txt ===
+function autoLoadData() {
+    fetch('data.txt')
+        .then(response => {
+            if (!response.ok) throw new Error('data.txt not found');
+            return response.text();
+        })
+        .then(text => {
+            document.getElementById('paste-input').value = text;
+            loadPastedData();
+            console.log('✅ 自動從 data.txt 載入數據');
+        })
+        .catch(() => console.log('⚠️ 未找到 data.txt，請手動貼上數據'));
+}
+
+// === 匯出快照 ===
+function exportSnapshot() {
+    const html = document.documentElement.outerHTML;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vital-threat-monitor-${new Date().toISOString().slice(0,10)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VISUAL EFFECTS - ECG, RADAR, SOUL PARTICLES, BACKGROUND
+// ═══════════════════════════════════════════════════════════════
+
+// === 背景粒子 ===
+const particleBg = document.getElementById('particle-bg');
+const particleCtx = particleBg.getContext('2d');
+const bgParticles = [];
+
+function resizeParticleBg() {
+    particleBg.width = window.innerWidth;
+    particleBg.height = window.innerHeight;
+    initBgParticles();
+}
+
+function initBgParticles() {
+    bgParticles.length = 0;
+    const count = Math.floor((particleBg.width * particleBg.height) / 15000);
+    for (let i = 0; i < count; i++) {
+        bgParticles.push({
+            x: Math.random() * particleBg.width,
+            y: Math.random() * particleBg.height,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: -0.2 - Math.random() * 0.5,
+            size: 0.5 + Math.random() * 1.5,
+            alpha: 0.1 + Math.random() * 0.4,
+            color: Math.random() > 0.8 ? '#a855f7' : (Math.random() > 0.5 ? '#00f3ff' : '#ffffff')
+        });
+    }
+}
+
+function drawBgParticles() {
+    particleCtx.fillStyle = 'rgba(3,4,5,0.1)';
+    particleCtx.fillRect(0, 0, particleBg.width, particleBg.height);
+
+    bgParticles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.y < -10) { p.y = particleBg.height + 10; p.x = Math.random() * particleBg.width; }
+        if (p.x < 0) p.x = particleBg.width;
+        if (p.x > particleBg.width) p.x = 0;
+
+        particleCtx.beginPath();
+        particleCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+
+        const hex = p.color.slice(1);
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        particleCtx.fillStyle = `rgba(${r},${g},${b},${p.alpha})`;
+        particleCtx.fill();
+    });
+
+    requestAnimationFrame(drawBgParticles);
+}
+
+resizeParticleBg();
+window.addEventListener('resize', resizeParticleBg);
+
+// === ECG 心電圖 ===
+const ecgCanvas = document.getElementById('ecg-canvas');
+const ecgCtx = ecgCanvas.getContext('2d');
+let ecgX = 0;
+
+function resizeECG() {
+    ecgCanvas.width = ecgCanvas.offsetWidth * 2;
+    ecgCanvas.height = ecgCanvas.offsetHeight * 2;
+    ecgCtx.scale(2, 2);
+}
+resizeECG();
+window.addEventListener('resize', resizeECG);
+
+function drawECG() {
+    const w = ecgCanvas.offsetWidth;
+    const h = ecgCanvas.offsetHeight;
+    const midY = h / 2;
+
+    ecgCtx.fillStyle = 'rgba(0,0,0,0.15)';
+    ecgCtx.fillRect(0, 0, w, h);
+
+    ecgX += 2;
+    if (ecgX > w) ecgX = 0;
+
+    const cycle = (ecgX % 100);
+    let y = midY;
+    if (cycle < 8) y = midY;
+    else if (cycle < 12) y = midY - 4;
+    else if (cycle < 16) y = midY + 2;
+    else if (cycle < 22) y = midY - (h * 0.6);
+    else if (cycle < 28) y = midY + (h * 0.25);
+    else if (cycle < 36) y = midY;
+    else if (cycle < 55) y = midY - 6;
+    else y = midY;
+
+    ecgCtx.strokeStyle = '#00ff41';
+    ecgCtx.lineWidth = 2;
+    ecgCtx.shadowColor = '#00ff41';
+    ecgCtx.shadowBlur = 10;
+    ecgCtx.beginPath();
+    ecgCtx.moveTo(ecgX - 2, midY);
+    ecgCtx.lineTo(ecgX, y);
+    ecgCtx.stroke();
+
+    ecgCtx.fillStyle = 'rgba(0,255,65,0.8)';
+    ecgCtx.fillRect(ecgX, 0, 2, h);
+
+    requestAnimationFrame(drawECG);
+}
+
+// === 雷達動畫 ===
+const radarCanvas = document.getElementById('radar-canvas');
+const radarCtx = radarCanvas.getContext('2d');
+let radarAngle = 0;
+
+function resizeRadar() {
+    radarCanvas.width = radarCanvas.offsetWidth * 2;
+    radarCanvas.height = radarCanvas.offsetHeight * 2;
+    radarCtx.scale(2, 2);
+}
+resizeRadar();
+window.addEventListener('resize', resizeRadar);
+
+const matrixChars = '01生死意外災難警告危險末世七年審判永恆靈魂DEATHALERTTHREATFATAL';
+const columns = [];
+
+function initMatrixColumns() {
+    const w = radarCanvas.offsetWidth;
+    const h = radarCanvas.offsetHeight;
+    const colCount = Math.floor(w / 18);
+    columns.length = 0;
+    for (let i = 0; i < colCount; i++) {
+        columns.push({
+            x: i * 18,
+            y: Math.random() * h,
+            speed: 1.5 + Math.random() * 3
+        });
+    }
+}
+initMatrixColumns();
+window.addEventListener('resize', initMatrixColumns);
+
+function drawRadar() {
+    const w = radarCanvas.offsetWidth;
+    const h = radarCanvas.offsetHeight;
+    const cx = w / 2;
+    const cy = h / 2;
+    const maxR = Math.min(cx, cy) * 0.8;
+
+    radarCtx.fillStyle = 'rgba(0,5,10,0.12)';
+    radarCtx.fillRect(0, 0, w, h);
+
+    // Matrix 數字雨
+    radarCtx.font = '14px "Share Tech Mono", monospace';
+    columns.forEach(col => {
+        const rand = Math.random();
+        if (rand < 0.5) radarCtx.fillStyle = 'rgba(0,255,65,0.6)';
+        else if (rand < 0.8) radarCtx.fillStyle = 'rgba(0,243,255,0.5)';
+        else radarCtx.fillStyle = 'rgba(168,85,247,0.5)';
+
+        const char = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+        radarCtx.fillText(char, col.x, col.y);
+
+        col.y += col.speed;
+        if (col.y > h) {
+            col.y = -20;
+            col.speed = 1.5 + Math.random() * 3;
+        }
+    });
+
+    // 雷達圓環
+    radarCtx.strokeStyle = 'rgba(0,243,255,0.25)';
+    radarCtx.lineWidth = 1;
+    for (let i = 1; i <= 4; i++) {
+        radarCtx.beginPath();
+        radarCtx.arc(cx, cy, maxR * i / 4, 0, Math.PI * 2);
+        radarCtx.stroke();
+    }
+
+    // 十字線
+    radarCtx.beginPath();
+    radarCtx.moveTo(cx - maxR, cy);
+    radarCtx.lineTo(cx + maxR, cy);
+    radarCtx.moveTo(cx, cy - maxR);
+    radarCtx.lineTo(cx, cy + maxR);
+    radarCtx.stroke();
+
+    // 掃描光束
+    radarAngle += 0.012;
+    for (let i = 0; i < 10; i++) {
+        const trailAngle = radarAngle - i * 0.06;
+        const alpha = 0.4 - i * 0.038;
+        if (alpha <= 0) continue;
+
+        const gradient = radarCtx.createLinearGradient(
+            cx, cy,
+            cx + Math.cos(trailAngle) * maxR,
+            cy + Math.sin(trailAngle) * maxR
+        );
+        gradient.addColorStop(0, `rgba(0,243,255,${alpha})`);
+        gradient.addColorStop(1, 'rgba(0,243,255,0)');
+
+        radarCtx.strokeStyle = gradient;
+        radarCtx.lineWidth = 2.5 - i * 0.2;
+        radarCtx.beginPath();
+        radarCtx.moveTo(cx, cy);
+        radarCtx.lineTo(cx + Math.cos(trailAngle) * maxR, cy + Math.sin(trailAngle) * maxR);
+        radarCtx.stroke();
+    }
+
+    // 中心光點
+    const centerGlow = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, 12);
+    centerGlow.addColorStop(0, 'rgba(0,243,255,0.9)');
+    centerGlow.addColorStop(1, 'rgba(0,243,255,0)');
+    radarCtx.fillStyle = centerGlow;
+    radarCtx.beginPath();
+    radarCtx.arc(cx, cy, 12, 0, Math.PI * 2);
+    radarCtx.fill();
+
+    requestAnimationFrame(drawRadar);
+}
+
+// === 靈魂粒子 ===
+const soulCanvas = document.getElementById('soul-canvas');
+const soulCtx = soulCanvas.getContext('2d');
+const soulParticles = [];
+
+function resizeSoul() {
+    soulCanvas.width = soulCanvas.offsetWidth * 2;
+    soulCanvas.height = soulCanvas.offsetHeight * 2;
+    soulCtx.scale(2, 2);
+    initSoulParticles();
+}
+
+function initSoulParticles() {
+    const w = soulCanvas.offsetWidth;
+    const h = soulCanvas.offsetHeight;
+    soulParticles.length = 0;
+    const count = Math.floor((w * h) / 6000);
+    for (let i = 0; i < count; i++) {
+        soulParticles.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: -0.4 - Math.random() * 0.8,
+            size: 1 + Math.random() * 2.5,
+            alpha: 0.2 + Math.random() * 0.5,
+            color: Math.random() > 0.7 ? '#a855f7' : (Math.random() > 0.5 ? '#00f3ff' : '#ffffff')
+        });
+    }
+}
+
+resizeSoul();
+window.addEventListener('resize', resizeSoul);
+
+function drawSoulParticles() {
+    const w = soulCanvas.offsetWidth;
+    const h = soulCanvas.offsetHeight;
+
+    soulCtx.fillStyle = 'rgba(0,5,10,0.08)';
+    soulCtx.fillRect(0, 0, w, h);
+
+    soulParticles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha += (Math.random() - 0.5) * 0.02;
+        p.alpha = Math.max(0.1, Math.min(0.7, p.alpha));
+
+        if (p.y < -10) { p.y = h + 10; p.x = Math.random() * w; }
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+
+        const hex = p.color.slice(1);
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+
+        soulCtx.beginPath();
+        soulCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        soulCtx.fillStyle = `rgba(${r},${g},${b},${p.alpha})`;
+        soulCtx.shadowColor = p.color;
+        soulCtx.shadowBlur = 10;
+        soulCtx.fill();
+    });
+
+    requestAnimationFrame(drawSoulParticles);
+}
+
+// === 啟動所有動畫 ===
+function startAllAnimations() {
+    drawBgParticles();
+    drawECG();
+    drawRadar();
+    drawSoulParticles();
+}
+
+// === 哲理開場處理 ===
+document.getElementById('philosophy-overlay').addEventListener('click', function() {
+    this.classList.add('fade-out');
+    setTimeout(() => this.style.display = 'none', 1500);
+});
+
+// === 頁面初始化 ===
+window.addEventListener('load', () => {
+    startAllAnimations();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    showDailyContent();
+    calculateLife();
+    document.getElementById('total-candles').textContent = totalCandles;
+    autoLoadData();
+
+    // 啟動死亡同步計數器
+    startDeathCounter();
+
+    console.log('🚀 VITAL LIFE MONITOR V9.0 — 末世史詩版 已啟動');
+    console.log('💀 生死只在一線之間');
+    console.log('✨ 今生與永恆，甦醒與昏沉');
+});
+
+// === 死亡同步計數器 ===
+let deathEntryTime = null;
+const DEATHS_PER_SECOND = 1.8;
+
+function startDeathCounter() {
+    deathEntryTime = Date.now();
+    updateDeathCounter();
+    setInterval(updateDeathCounter, 500);
+}
+
+function updateDeathCounter() {
+    if (!deathEntryTime) return;
+
+    const elapsed = (Date.now() - deathEntryTime) / 1000;
+    const deathsSinceEntry = Math.floor(elapsed * DEATHS_PER_SECOND);
+
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const secondsToday = (now - startOfDay) / 1000;
+    const deathsToday = Math.floor(secondsToday * DEATHS_PER_SECOND);
+
+    document.getElementById('death-since-entry').textContent = deathsSinceEntry.toLocaleString();
+    document.getElementById('death-today').textContent = deathsToday.toLocaleString();
+}
+</script>
+
+<script>
+/**
+ * Iframe 元素高亮注入脚本
+ * 需要在目标网站中引入此脚本来支持跨域 iframe 高亮功能
+ *
+ * 使用方法：
+ * 1. 将此脚本添加到目标网站的 HTML 中
+ * 2. 或通过浏览器扩展、用户脚本等方式注入
+ */
+
+(function () {
+  "use strict";
+
+  // 检查是否在 iframe 中
+  if (window.self === window.top) {
+    return; // 不在 iframe 中，不执行
+  }
+
+  // 检查是否已经初始化过
+  if (window.__iframeHighlightInitialized) {
+    return;
+  }
+  window.__iframeHighlightInitialized = true;
+  console.log("Iframe 高亮脚本已加载");
+
+  // 创建高亮覆盖层
+  var overlay = document.createElement("div");
+  overlay.id = "iframe-highlight-overlay";
+  overlay.style.cssText = "\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    pointer-events: none;\n    z-index: 999999;\n    overflow: hidden;\n  ";
+
+  // 创建悬停高亮框（虚线边框）
+  var highlightBox = document.createElement("div");
+  highlightBox.id = "iframe-highlight-box";
+  highlightBox.style.cssText = "\n    position: absolute;\n    border: 2px dashed #007AFF;\n    background: rgba(0, 122, 255, 0.08);\n    pointer-events: none;\n    display: none;\n    transition: all 0.1s ease;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);\n    border-radius: 2px;\n  ";
+
+  // 创建选中节点的常驻高亮框（实线边框）
+  var selectedBox = document.createElement("div");
+  selectedBox.id = "iframe-selected-box";
+  selectedBox.style.cssText = "\n    position: absolute;\n    border: 2px solid #007AFF;\n    pointer-events: none;\n    display: none;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 107, 53, 0.4);\n    border-radius: 2px;\n    z-index: 1000000;\n  ";
+
+  // 创建悬停标签显示
+  var tagLabel = document.createElement("div");
+  tagLabel.id = "iframe-tag-label";
+  tagLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 2px 6px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 2px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000001;\n    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\n    font-weight: 500;\n  ";
+
+  // 创建选中节点标签
+  var selectedLabel = document.createElement("div");
+  selectedLabel.id = "iframe-selected-label";
+  selectedLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 3px 8px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 3px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000002;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n    font-weight: 600;\n  ";
+  overlay.appendChild(highlightBox);
+  overlay.appendChild(selectedBox);
+  overlay.appendChild(tagLabel);
+  overlay.appendChild(selectedLabel);
+  document.body.appendChild(overlay);
+
+  // 存储当前选中的元素
+  var selectedElement = null;
+  var highlightEnabled = false;
+
+  // 更新选中元素的高亮显示
+  function updateSelectedHighlight(element) {
+    console.log("updateSelectedHighlight called with:", element);
+    if (!element) {
+      selectedBox.style.display = "none";
+      selectedLabel.style.display = "none";
+      selectedElement = null;
+      console.log("Cleared selected highlight");
+      return;
+    }
+    selectedElement = element;
+    var rect = element.getBoundingClientRect();
+    console.log("Selected element rect:", rect);
+
+    // 更新选中高亮框位置
+    selectedBox.style.display = "block";
+    selectedBox.style.left = "".concat(rect.left - 2, "px");
+    selectedBox.style.top = "".concat(rect.top - 2, "px");
+    selectedBox.style.width = "".concat(rect.width + 4, "px");
+    selectedBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新选中标签位置和内容
+    selectedLabel.style.display = "block";
+    selectedLabel.textContent = "\u2713 <".concat(element.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 28;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 5) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    var labelWidth = selectedLabel.offsetWidth || 100; // 预估宽度
+    if (labelLeft + labelWidth > window.innerWidth - 10) {
+      labelLeft = window.innerWidth - labelWidth - 10;
+    }
+    selectedLabel.style.left = "".concat(Math.max(5, labelLeft), "px");
+    selectedLabel.style.top = "".concat(labelTop, "px");
+    console.log("Selected highlight positioned at:", {
+      left: selectedBox.style.left,
+      top: selectedBox.style.top,
+      width: selectedBox.style.width,
+      height: selectedBox.style.height
+    });
+  }
+  function getElementSelector(element) {
+    if (!(element instanceof Element)) throw new Error('Argument must be a DOM element');
+    var segments = [];
+    var current = element;
+    while (current !== document.documentElement) {
+      var selector = '';
+      // 优先检查唯一ID
+      if (current.id && document.querySelectorAll("#".concat(current.id)).length === 1) {
+        segments.unshift("#".concat(current.id));
+        break; // ID唯一，无需继续向上
+      }
+
+      // 生成类名选择器（取第一个有效类名）
+      var classes = Array.from(current.classList).filter(function (c) {
+        return !c.startsWith('js-');
+      });
+      var className = classes.length > 0 ? ".".concat(classes[0]) : '';
+
+      // 生成位置索引（nth-child）
+      var tag = current.tagName.toLowerCase();
+      if (!className) {
+        var siblings = Array.from(current.parentNode.children);
+        var index = siblings.findIndex(function (el) {
+          return el === current;
+        }) + 1;
+        selector = "".concat(tag, ":nth-child(").concat(index, ")");
+      } else {
+        selector = className;
+      }
+      segments.unshift(selector);
+      current = current.parentElement;
+    }
+
+    // 处理根元素
+    if (current === document.documentElement) {
+      segments.unshift('html');
+    }
+    return segments.join(' > ');
+  }
+
+  // 获取元素文本内容
+  function getElementText(element) {
+    var _element$textContent;
+    if (element.tagName === "INPUT") {
+      return element.value || element.placeholder || "";
+    }
+    if (element.tagName === "TEXTAREA") {
+      return element.value || element.placeholder || "";
+    }
+    var text = ((_element$textContent = element.textContent) === null || _element$textContent === void 0 ? void 0 : _element$textContent.trim()) || "";
+    return text.length > 50 ? text.substring(0, 50) + "..." : text;
+  }
+
+  // 获取元素属性信息
+  function getElementAttributes(element) {
+    var attrs = {};
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      attrs[attr.name] = attr.value;
+    }
+    return attrs;
+  }
+
+  // 鼠标悬停事件处理
+  function handleMouseOver(e) {
+    if (!highlightEnabled) return;
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免高亮 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 如果是已选中的元素，不显示悬停高亮
+    if (target === selectedElement) {
+      highlightBox.style.display = "none";
+      tagLabel.style.display = "none";
+      return;
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+
+    // 更新悬停高亮框位置
+    highlightBox.style.display = "block";
+    highlightBox.style.left = "".concat(rect.left - 2, "px");
+    highlightBox.style.top = "".concat(rect.top - 2, "px");
+    highlightBox.style.width = "".concat(rect.width + 4, "px");
+    highlightBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新标签位置和内容
+    tagLabel.style.display = "block";
+    tagLabel.textContent = "<".concat(target.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 22;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 0) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    if (labelLeft + tagLabel.offsetWidth > window.innerWidth) {
+      labelLeft = window.innerWidth - tagLabel.offsetWidth - 5;
+    }
+    tagLabel.style.left = "".concat(Math.max(0, labelLeft), "px");
+    tagLabel.style.top = "".concat(labelTop, "px");
+
+    // 发送消息到父窗口
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 鼠标离开事件处理
+  function handleMouseOut(e) {
+    if (!highlightEnabled) return;
+    var relatedTarget = e.relatedTarget;
+
+    // 如果鼠标移动到高亮相关元素上，不隐藏高亮
+    if (relatedTarget && (relatedTarget === highlightBox || relatedTarget === tagLabel || relatedTarget === overlay || relatedTarget === selectedBox || relatedTarget === selectedLabel)) {
+      return;
+    }
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: null,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 点击事件处理
+  function handleClick(e) {
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免处理 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 检查是否是交互元素，这些元素需要保留默认行为
+    var isInteractiveElement = ['input', 'textarea', 'select', 'button', 'a'].includes(target.tagName.toLowerCase());
+
+    // 如果高亮功能启用，对于非交互元素阻止默认行为和事件传播
+    if (highlightEnabled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+    console.log("Element clicked:", {
+      tagName: target.tagName,
+      selector: selector,
+      rect: rect
+    });
+
+    // 立即更新选中高亮
+    updateSelectedHighlight(target);
+
+    // 隐藏悬停高亮，因为现在是选中状态
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-click",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 监听来自父窗口的消息
+  function handleParentMessage(event) {
+    console.log("Received message from parent:", event.data);
+    if (event.data.type === "iframe-highlight-toggle") {
+      var enabled = event.data.enabled;
+      console.log("Highlight toggle:", enabled);
+      if (enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "enable-iframe-highlight") {
+      console.log("Enable iframe highlight");
+      enableHighlight();
+    } else if (event.data.type === "disable-iframe-highlight") {
+      console.log("Disable iframe highlight");
+      disableHighlight();
+    } else if (event.data.type === "toggle-iframe-highlight") {
+      var _enabled = event.data.enabled !== undefined ? event.data.enabled : !highlightEnabled;
+      console.log("Toggle iframe highlight to:", _enabled);
+      if (_enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "update-selected-element") {
+      var selector = event.data.selector;
+      console.log("Update selected element with selector:", selector);
+      if (selector) {
+        try {
+          var element = document.querySelector(selector);
+          console.log("Found element by selector:", element);
+          updateSelectedHighlight(element);
+        } catch (error) {
+          console.warn("Failed to select element:", error);
+          updateSelectedHighlight(null);
+        }
+      } else {
+        updateSelectedHighlight(null);
+      }
+    } else if (event.data.type === "clear-selected-element") {
+      console.log("Clear selected element");
+      updateSelectedHighlight(null);
+    }
+  }
+
+  // 启用高亮功能
+  function enableHighlight() {
+    console.log("Enabling highlight");
+    document.addEventListener("mouseover", handleMouseOver, true);
+    document.addEventListener("mouseout", handleMouseOut, true);
+    document.addEventListener("click", handleClick, true);
+    highlightEnabled = true;
+    overlay.style.display = "block";
+  }
+
+  // 禁用高亮功能
+  function disableHighlight() {
+    console.log("Disabling highlight");
+    highlightEnabled = false;
+    // 保持事件监听器，但通过 highlightEnabled 变量控制行为
+    // 这样可以保留选中状态的显示
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    // 不隐藏 selectedBox 和 selectedLabel，保留选中状态
+  }
+
+  // 完全禁用高亮功能（移除所有监听器）
+  function fullyDisableHighlight() {
+    console.log("Fully disabling highlight");
+    highlightEnabled = false;
+    document.removeEventListener("mouseover", handleMouseOver, true);
+    document.removeEventListener("mouseout", handleMouseOut, true);
+    document.removeEventListener("click", handleClick, true);
+    overlay.style.display = "none";
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    selectedBox.style.display = "none";
+    selectedLabel.style.display = "none";
+  }
+
+  // 添加事件监听
+  enableHighlight();
+  window.addEventListener("message", handleParentMessage);
+
+  // 暴露全局函数供外部调用
+  window.__iframeHighlightControl = {
+    enable: enableHighlight,
+    disable: disableHighlight,
+    fullyDisable: fullyDisableHighlight,
+    isEnabled: function isEnabled() {
+      return highlightEnabled;
+    },
+    getSelectedElement: function getSelectedElement() {
+      return selectedElement;
+    },
+    updateSelected: updateSelectedHighlight,
+    // 通过消息发送开关控制
+    sendToggleMessage: function sendToggleMessage(enabled) {
+      window.parent.postMessage({
+        type: 'iframe-highlight-status',
+        enabled: enabled || highlightEnabled,
+        source: 'iframe-highlight-injector'
+      }, '*');
+    }
+  };
+
+  // 通知父窗口脚本已加载
+  try {
+    window.parent.postMessage({
+      type: "iframe-highlight-ready",
+      data: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: Date.now()
+      },
+      source: "iframe-highlight-injector"
+    }, "*");
+  } catch (error) {
+    console.warn("无法发送就绪消息到父窗口:", error);
+  }
+
+  // 清理函数
+  window.__iframeHighlightCleanup = function () {
+    fullyDisableHighlight();
+    window.removeEventListener("message", handleParentMessage);
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+    delete window.__iframeHighlightInitialized;
+    delete window.__iframeHighlightCleanup;
+  };
+})();
+
+</script>
+
+<script>
+/**
+ * Iframe 元素高亮注入脚本
+ * 需要在目标网站中引入此脚本来支持跨域 iframe 高亮功能
+ *
+ * 使用方法：
+ * 1. 将此脚本添加到目标网站的 HTML 中
+ * 2. 或通过浏览器扩展、用户脚本等方式注入
+ */
+
+(function () {
+  "use strict";
+
+  // 检查是否在 iframe 中
+  if (window.self === window.top) {
+    return; // 不在 iframe 中，不执行
+  }
+
+  // 检查是否已经初始化过
+  if (window.__iframeHighlightInitialized) {
+    return;
+  }
+  window.__iframeHighlightInitialized = true;
+  console.log("Iframe 高亮脚本已加载");
+
+  // 创建高亮覆盖层
+  var overlay = document.createElement("div");
+  overlay.id = "iframe-highlight-overlay";
+  overlay.style.cssText = "\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    pointer-events: none;\n    z-index: 999999;\n    overflow: hidden;\n  ";
+
+  // 创建悬停高亮框（虚线边框）
+  var highlightBox = document.createElement("div");
+  highlightBox.id = "iframe-highlight-box";
+  highlightBox.style.cssText = "\n    position: absolute;\n    border: 2px dashed #007AFF;\n    background: rgba(0, 122, 255, 0.08);\n    pointer-events: none;\n    display: none;\n    transition: all 0.1s ease;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);\n    border-radius: 2px;\n  ";
+
+  // 创建选中节点的常驻高亮框（实线边框）
+  var selectedBox = document.createElement("div");
+  selectedBox.id = "iframe-selected-box";
+  selectedBox.style.cssText = "\n    position: absolute;\n    border: 2px solid #007AFF;\n    pointer-events: none;\n    display: none;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 107, 53, 0.4);\n    border-radius: 2px;\n    z-index: 1000000;\n  ";
+
+  // 创建悬停标签显示
+  var tagLabel = document.createElement("div");
+  tagLabel.id = "iframe-tag-label";
+  tagLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 2px 6px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 2px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000001;\n    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\n    font-weight: 500;\n  ";
+
+  // 创建选中节点标签
+  var selectedLabel = document.createElement("div");
+  selectedLabel.id = "iframe-selected-label";
+  selectedLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 3px 8px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 3px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000002;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n    font-weight: 600;\n  ";
+  overlay.appendChild(highlightBox);
+  overlay.appendChild(selectedBox);
+  overlay.appendChild(tagLabel);
+  overlay.appendChild(selectedLabel);
+  document.body.appendChild(overlay);
+
+  // 存储当前选中的元素
+  var selectedElement = null;
+  var highlightEnabled = false;
+
+  // 更新选中元素的高亮显示
+  function updateSelectedHighlight(element) {
+    console.log("updateSelectedHighlight called with:", element);
+    if (!element) {
+      selectedBox.style.display = "none";
+      selectedLabel.style.display = "none";
+      selectedElement = null;
+      console.log("Cleared selected highlight");
+      return;
+    }
+    selectedElement = element;
+    var rect = element.getBoundingClientRect();
+    console.log("Selected element rect:", rect);
+
+    // 更新选中高亮框位置
+    selectedBox.style.display = "block";
+    selectedBox.style.left = "".concat(rect.left - 2, "px");
+    selectedBox.style.top = "".concat(rect.top - 2, "px");
+    selectedBox.style.width = "".concat(rect.width + 4, "px");
+    selectedBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新选中标签位置和内容
+    selectedLabel.style.display = "block";
+    selectedLabel.textContent = "\u2713 <".concat(element.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 28;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 5) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    var labelWidth = selectedLabel.offsetWidth || 100; // 预估宽度
+    if (labelLeft + labelWidth > window.innerWidth - 10) {
+      labelLeft = window.innerWidth - labelWidth - 10;
+    }
+    selectedLabel.style.left = "".concat(Math.max(5, labelLeft), "px");
+    selectedLabel.style.top = "".concat(labelTop, "px");
+    console.log("Selected highlight positioned at:", {
+      left: selectedBox.style.left,
+      top: selectedBox.style.top,
+      width: selectedBox.style.width,
+      height: selectedBox.style.height
+    });
+  }
+  function getElementSelector(element) {
+    if (!(element instanceof Element)) throw new Error('Argument must be a DOM element');
+    var segments = [];
+    var current = element;
+    while (current !== document.documentElement) {
+      var selector = '';
+      // 优先检查唯一ID
+      if (current.id && document.querySelectorAll("#".concat(current.id)).length === 1) {
+        segments.unshift("#".concat(current.id));
+        break; // ID唯一，无需继续向上
+      }
+
+      // 生成类名选择器（取第一个有效类名）
+      var classes = Array.from(current.classList).filter(function (c) {
+        return !c.startsWith('js-');
+      });
+      var className = classes.length > 0 ? ".".concat(classes[0]) : '';
+
+      // 生成位置索引（nth-child）
+      var tag = current.tagName.toLowerCase();
+      if (!className) {
+        var siblings = Array.from(current.parentNode.children);
+        var index = siblings.findIndex(function (el) {
+          return el === current;
+        }) + 1;
+        selector = "".concat(tag, ":nth-child(").concat(index, ")");
+      } else {
+        selector = className;
+      }
+      segments.unshift(selector);
+      current = current.parentElement;
+    }
+
+    // 处理根元素
+    if (current === document.documentElement) {
+      segments.unshift('html');
+    }
+    return segments.join(' > ');
+  }
+
+  // 获取元素文本内容
+  function getElementText(element) {
+    var _element$textContent;
+    if (element.tagName === "INPUT") {
+      return element.value || element.placeholder || "";
+    }
+    if (element.tagName === "TEXTAREA") {
+      return element.value || element.placeholder || "";
+    }
+    var text = ((_element$textContent = element.textContent) === null || _element$textContent === void 0 ? void 0 : _element$textContent.trim()) || "";
+    return text.length > 50 ? text.substring(0, 50) + "..." : text;
+  }
+
+  // 获取元素属性信息
+  function getElementAttributes(element) {
+    var attrs = {};
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      attrs[attr.name] = attr.value;
+    }
+    return attrs;
+  }
+
+  // 鼠标悬停事件处理
+  function handleMouseOver(e) {
+    if (!highlightEnabled) return;
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免高亮 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 如果是已选中的元素，不显示悬停高亮
+    if (target === selectedElement) {
+      highlightBox.style.display = "none";
+      tagLabel.style.display = "none";
+      return;
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+
+    // 更新悬停高亮框位置
+    highlightBox.style.display = "block";
+    highlightBox.style.left = "".concat(rect.left - 2, "px");
+    highlightBox.style.top = "".concat(rect.top - 2, "px");
+    highlightBox.style.width = "".concat(rect.width + 4, "px");
+    highlightBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新标签位置和内容
+    tagLabel.style.display = "block";
+    tagLabel.textContent = "<".concat(target.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 22;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 0) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    if (labelLeft + tagLabel.offsetWidth > window.innerWidth) {
+      labelLeft = window.innerWidth - tagLabel.offsetWidth - 5;
+    }
+    tagLabel.style.left = "".concat(Math.max(0, labelLeft), "px");
+    tagLabel.style.top = "".concat(labelTop, "px");
+
+    // 发送消息到父窗口
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 鼠标离开事件处理
+  function handleMouseOut(e) {
+    if (!highlightEnabled) return;
+    var relatedTarget = e.relatedTarget;
+
+    // 如果鼠标移动到高亮相关元素上，不隐藏高亮
+    if (relatedTarget && (relatedTarget === highlightBox || relatedTarget === tagLabel || relatedTarget === overlay || relatedTarget === selectedBox || relatedTarget === selectedLabel)) {
+      return;
+    }
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: null,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 点击事件处理
+  function handleClick(e) {
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免处理 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 检查是否是交互元素，这些元素需要保留默认行为
+    var isInteractiveElement = ['input', 'textarea', 'select', 'button', 'a'].includes(target.tagName.toLowerCase());
+
+    // 如果高亮功能启用，对于非交互元素阻止默认行为和事件传播
+    if (highlightEnabled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+    console.log("Element clicked:", {
+      tagName: target.tagName,
+      selector: selector,
+      rect: rect
+    });
+
+    // 立即更新选中高亮
+    updateSelectedHighlight(target);
+
+    // 隐藏悬停高亮，因为现在是选中状态
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-click",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 监听来自父窗口的消息
+  function handleParentMessage(event) {
+    console.log("Received message from parent:", event.data);
+    if (event.data.type === "iframe-highlight-toggle") {
+      var enabled = event.data.enabled;
+      console.log("Highlight toggle:", enabled);
+      if (enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "enable-iframe-highlight") {
+      console.log("Enable iframe highlight");
+      enableHighlight();
+    } else if (event.data.type === "disable-iframe-highlight") {
+      console.log("Disable iframe highlight");
+      disableHighlight();
+    } else if (event.data.type === "toggle-iframe-highlight") {
+      var _enabled = event.data.enabled !== undefined ? event.data.enabled : !highlightEnabled;
+      console.log("Toggle iframe highlight to:", _enabled);
+      if (_enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "update-selected-element") {
+      var selector = event.data.selector;
+      console.log("Update selected element with selector:", selector);
+      if (selector) {
+        try {
+          var element = document.querySelector(selector);
+          console.log("Found element by selector:", element);
+          updateSelectedHighlight(element);
+        } catch (error) {
+          console.warn("Failed to select element:", error);
+          updateSelectedHighlight(null);
+        }
+      } else {
+        updateSelectedHighlight(null);
+      }
+    } else if (event.data.type === "clear-selected-element") {
+      console.log("Clear selected element");
+      updateSelectedHighlight(null);
+    }
+  }
+
+  // 启用高亮功能
+  function enableHighlight() {
+    console.log("Enabling highlight");
+    document.addEventListener("mouseover", handleMouseOver, true);
+    document.addEventListener("mouseout", handleMouseOut, true);
+    document.addEventListener("click", handleClick, true);
+    highlightEnabled = true;
+    overlay.style.display = "block";
+  }
+
+  // 禁用高亮功能
+  function disableHighlight() {
+    console.log("Disabling highlight");
+    highlightEnabled = false;
+    // 保持事件监听器，但通过 highlightEnabled 变量控制行为
+    // 这样可以保留选中状态的显示
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    // 不隐藏 selectedBox 和 selectedLabel，保留选中状态
+  }
+
+  // 完全禁用高亮功能（移除所有监听器）
+  function fullyDisableHighlight() {
+    console.log("Fully disabling highlight");
+    highlightEnabled = false;
+    document.removeEventListener("mouseover", handleMouseOver, true);
+    document.removeEventListener("mouseout", handleMouseOut, true);
+    document.removeEventListener("click", handleClick, true);
+    overlay.style.display = "none";
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    selectedBox.style.display = "none";
+    selectedLabel.style.display = "none";
+  }
+
+  // 添加事件监听
+  enableHighlight();
+  window.addEventListener("message", handleParentMessage);
+
+  // 暴露全局函数供外部调用
+  window.__iframeHighlightControl = {
+    enable: enableHighlight,
+    disable: disableHighlight,
+    fullyDisable: fullyDisableHighlight,
+    isEnabled: function isEnabled() {
+      return highlightEnabled;
+    },
+    getSelectedElement: function getSelectedElement() {
+      return selectedElement;
+    },
+    updateSelected: updateSelectedHighlight,
+    // 通过消息发送开关控制
+    sendToggleMessage: function sendToggleMessage(enabled) {
+      window.parent.postMessage({
+        type: 'iframe-highlight-status',
+        enabled: enabled || highlightEnabled,
+        source: 'iframe-highlight-injector'
+      }, '*');
+    }
+  };
+
+  // 通知父窗口脚本已加载
+  try {
+    window.parent.postMessage({
+      type: "iframe-highlight-ready",
+      data: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: Date.now()
+      },
+      source: "iframe-highlight-injector"
+    }, "*");
+  } catch (error) {
+    console.warn("无法发送就绪消息到父窗口:", error);
+  }
+
+  // 清理函数
+  window.__iframeHighlightCleanup = function () {
+    fullyDisableHighlight();
+    window.removeEventListener("message", handleParentMessage);
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+    delete window.__iframeHighlightInitialized;
+    delete window.__iframeHighlightCleanup;
+  };
+})();
+
+</script>
+</body>
+</html>
