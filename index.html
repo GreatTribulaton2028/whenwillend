@@ -1168,9 +1168,9 @@ a[data-lang].active {
      ═══════════════════════════════════════════════════════════ -->
 <div id="minimalist-entry">
     <!-- Shocking Death Counter - Primary Visual Focus -->
-    <div class="mini-death-counter">
+    <div class="mini-death-counter" role="status" aria-label="全球死亡統計">
         <div class="mini-counter-label">此刻起全球已有</div>
-        <div class="mini-counter-number" id="mini-death-count">0</div>
+        <div class="mini-counter-number" id="mini-death-count" aria-live="polite">0</div>
         <div class="mini-counter-desc">人離世 / Deaths Since You Arrived</div>
     </div>
     
@@ -1646,7 +1646,8 @@ window.addEventListener('resize', initSoulParticles);
 // ═══════════════════════════════════════════════════════════
 let miniEntryTime = null;
 let miniCounterInterval = null;
-const MINI_DEATHS_PER_SECOND = 1.8; // WHO estimate
+// WHO global mortality estimate (2020): ~58 million deaths/year ≈ 1.8 deaths/second
+const MINI_DEATHS_PER_SECOND = 1.8;
 
 // Start mini death counter immediately on page load
 function startMiniCounter() {
@@ -1692,14 +1693,17 @@ function handleMinimalistChoice(choice) {
                 clearInterval(countdownInterval);
                 clearInterval(miniCounterInterval);
                 
-                // Fade out and close window or redirect
+                // Fade out and show final message
                 setTimeout(() => {
-                    // Try to close window (works if opened by script)
-                    // Otherwise, show a final message
-                    const canClose = window.close();
-                    if (!canClose) {
-                        // If can't close, reload to homepage or blank
-                        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#ffd700;font-family:serif;font-size:2rem;text-align:center;letter-spacing:4px;padding:20px;">願你餘生平安<br>Peace Be With You</div>';
+                    // Create a final farewell overlay
+                    const farewellOverlay = document.createElement('div');
+                    farewellOverlay.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#ffd700;font-family:serif;font-size:2rem;text-align:center;letter-spacing:4px;padding:20px;z-index:100002;';
+                    farewellOverlay.innerHTML = '願你餘生平安<br>Peace Be With You';
+                    document.body.appendChild(farewellOverlay);
+                    
+                    // Try to close if window was opened by script
+                    if (window.opener) {
+                        setTimeout(() => window.close(), 2000);
                     }
                 }, 3000);
             }
