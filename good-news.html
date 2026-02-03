@@ -497,6 +497,7 @@
         let timerInterval = null;
         let timeRemaining = 240; // 4 minutes in seconds
         const totalTime = 240;
+        const progressMultiplier = 100 / totalTime; // Pre-calculate for performance
 
         // Amen button click handler
         amenBtn.addEventListener('click', function() {
@@ -518,8 +519,8 @@
             timerInterval = setInterval(function() {
                 timeRemaining--;
 
-                // Calculate progress percentage
-                const progress = ((totalTime - timeRemaining) / totalTime) * 100;
+                // Calculate progress percentage using pre-calculated multiplier
+                const progress = (totalTime - timeRemaining) * progressMultiplier;
                 progressBar.style.width = progress + '%';
                 progressText.textContent = Math.floor(progress) + '%';
 
@@ -547,7 +548,7 @@
                     progressBar.style.width = '100%';
                     progressText.textContent = '100%';
                     downloadMessage.textContent = '✓ 準備完成！';
-                    downloadMessage.style.color = 'var(--c-acc)';
+                    downloadMessage.style.color = 'var(--c-accent)';
                     
                     // Show action buttons
                     actionButtons.classList.add('visible');
